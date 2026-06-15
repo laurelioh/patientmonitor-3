@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=1920, initial-scale=1.0"/>
+<title>Patient Monitor Display</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet"/>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg-page:    #0a0f1e;
+  --bg-header:  #0d1b2a;
+  --bg-card:    #111827;
+  --bg-ecg:     #0d1b2a;
+  --border-dim: #1e293b;
+  --border-mid: #1e3a5f;
+  --label:      #64748b;
+  --body:       #94a3b8;
+  --bright:     #e2e8f0;
+  --green:      #10b981;
+  --green-dk:   #064e3b;
+  --blue:       #60a5fa;
+  --blue-dk:    #1e3a5f;
+  --amber:      #f59e0b;
+  --amber-dk:   #451a03;
+  --purple:     #a78bfa;
+  --purple-dk:  #2e1065;
+  --red:        #ef4444;
+  --red-dk:     #7f1d1d;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  background: var(--bg-page);
+  font-family: 'Inter', sans-serif;
+  overflow: hidden;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+/* ── HEADER ── */
+.header {
+  height: 58px;
+  flex-shrink: 0;
+  background: var(--bg-header);
+  border-bottom: 1px solid var(--border-mid);
+  display: flex;
+  align-items: stretch;
+  padding: 0 24px;
+}
+.hfield {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 0 20px;
+  border-right: 1px solid var(--border-dim);
+  flex: 1;
+}
+.hfield:first-child { padding-left: 0; }
+.hfield:last-child  { border-right: none; }
+.hlabel {
+  font-size: 10px;
+  color: var(--label);
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  font-weight: 600;
+  margin-bottom: 3px;
+}
+.hval {
+  font-size: 14px;
+  color: var(--bright);
+  font-weight: 500;
+}
+.hval.clock {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 16px;
+  color: var(--green);
+  font-weight: 700;
+}
+
+/* ── VITALS ── */
+.vitals {
+  display: flex;
+  gap: 14px;
+  padding: 12px 24px;
+  flex-shrink: 0;
+}
+.vcard {
+  flex: 1;
+  background: var(--bg-card);
+  border-radius: 12px;
+  border: 1px solid var(--border-dim);
+  padding: 14px 18px 12px;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+}
+.vcard::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  border-radius: 12px 12px 0 0;
+}
+.vcard.green::after  { background: var(--green); }
+.vcard.blue::after   { background: var(--blue); }
+.vcard.amber::after  { background: var(--amber); }
+.vcard.purple::after { background: var(--purple); }
+.vcard.teal::after   { background: var(--green); }
+
+.vlabel {
+  font-size: 11px;
+  color: var(--label);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  margin-bottom: 6px;
+}
+.vvalue {
+  font-size: 52px;
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.vunit { font-size: 20px; font-weight: 500; opacity: .75; margin-left: 2px; }
+.vnormal { font-size: 11px; margin-top: 6px; }
+.vcard.green  .vvalue  { color: var(--green); }
+.vcard.green  .vnormal { color: var(--green-dk); }
+.vcard.blue   .vvalue  { color: var(--blue); }
+.vcard.blue   .vnormal { color: var(--blue-dk); }
+.vcard.amber  .vvalue  { color: var(--amber); }
+.vcard.amber  .vnormal { color: var(--amber-dk); }
+.vcard.purple .vvalue  { color: var(--purple); font-size: 40px; }
+.vcard.purple .vnormal { color: var(--purple-dk); }
+.vcard.teal   .vvalue  { color: var(--green); font-size: 36px; }
+.vcard.teal   .vnormal { color: var(--green-dk); }
+.map-line { font-size: 12px; color: #7c3aed; font-weight: 600; margin-top: 3px; }
+
+/* ── ECG ── */
+.ecg-wrap {
+  flex: 1;
+  min-height: 0;
+  margin: 0 24px;
+  background: var(--bg-ecg);
+  border-radius: 12px;
+  border: 1px solid var(--border-mid);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.ecg-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 20px;
+  border-bottom: 1px solid var(--border-mid);
+  flex-shrink: 0;
+}
+.emeta { font-size: 12px; color: var(--label); }
+.emeta span { color: var(--green); font-weight: 600; margin-left: 4px; }
+.emeta .hr { color: var(--green); font-size: 18px; font-weight: 700; font-family: 'JetBrains Mono', monospace; }
+#ecgCanvas { display: block; width: 100%; flex: 1; min-height: 0; }
+
+/* ── BOTTOM ── */
+.bottom {
+  display: flex;
+  gap: 14px;
+  padding: 12px 24px;
+  flex-shrink: 0;
+}
+.bpanel {
+  flex: 1;
+  background: var(--bg-card);
+  border-radius: 12px;
+  border: 1px solid var(--border-dim);
+  padding: 12px 18px;
+}
+.bptitle {
+  font-size: 10px;
+  color: var(--label);
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+.trow {
+  display: flex;
+  align-items: center;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--border-dim);
+  gap: 10px;
+}
+.trow:last-child { border-bottom: none; }
+.tname { font-size: 13px; color: var(--body); min-width: 160px; }
+.tline { flex: 1; height: 1px; background: var(--border-dim); }
+.tval { font-size: 14px; font-weight: 700; min-width: 80px; text-align: right; font-family: 'JetBrains Mono', monospace; }
+.tg { color: var(--green); }
+.tb { color: var(--blue); }
+.ta { color: var(--amber); }
+.tp { color: var(--purple); }
+
+.qa {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--border-dim);
+  cursor: pointer;
+  transition: opacity .15s;
+}
+.qa:last-child { border-bottom: none; }
+.qa:hover { opacity: .75; }
+.qa-icon { width: 34px; height: 34px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.qa-lbl { font-size: 14px; color: var(--body); font-weight: 500; }
+.ic-rec { background: #1a2744; }
+.ic-rep { background: #1a1f3a; }
+.ic-exp { background: #1f1a10; }
+
+/* ── STATUS ── */
+.statusbar {
+  height: 34px;
+  flex-shrink: 0;
+  background: var(--bg-header);
+  border-top: 1px solid var(--border-mid);
+  display: flex;
+  align-items: center;
+  padding: 0 24px;
+  gap: 24px;
+}
+.sdot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); animation: blink 2s infinite; flex-shrink: 0; }
+@keyframes blink { 0%,100%{opacity:1;} 50%{opacity:.15;} }
+.stxt { font-size: 12px; color: var(--label); }
+.stxt span { color: var(--body); }
+.alarm {
+  margin-left: auto;
+  background: var(--red-dk);
+  color: #fca5a5;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 14px;
+  border-radius: 4px;
+  display: none;
+  animation: blink .7s infinite;
+}
+.rec-ind { display: none; align-items: center; gap: 8px; margin-left: auto; }
+.rec-ind .rd { width:8px;height:8px;border-radius:50%;background:var(--red);animation:blink .8s infinite; }
+.rec-ind .rt { font-size:11px;color:#fca5a5;font-weight:700;letter-spacing:.05em; }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="hfield">
+    <div class="hlabel">Patient ID</div>
+    <div class="hval">PT-004821</div>
+  </div>
+  <div class="hfield">
+    <div class="hlabel">Name</div>
+    <div class="hval">Adebayo, Kolade</div>
+  </div>
+  <div class="hfield">
+    <div class="hlabel">Age</div>
+    <div class="hval">34 yrs</div>
+  </div>
+  <div class="hfield">
+    <div class="hlabel">Gender</div>
+    <div class="hval">Male</div>
+  </div>
+  <div class="hfield">
+    <div class="hlabel">Room</div>
+    <div class="hval">ICU-07</div>
+  </div>
+  <div class="hfield">
+    <div class="hlabel">Date</div>
+    <div class="hval" id="datedisp">--/--/----</div>
+  </div>
+  <div class="hfield">
+    <div class="hlabel">Time</div>
+    <div class="hval clock" id="clock">--:--:--</div>
+  </div>
+</div>
+
+<!-- VITALS -->
+<div class="vitals">
+  <div class="vcard green">
+    <div class="vlabel">SpO₂</div>
+    <div class="vvalue"><span id="spo2v">98</span><span class="vunit">%</span></div>
+    <div class="vnormal">Normal: 95–100%</div>
+  </div>
+  <div class="vcard blue">
+    <div class="vlabel">Temperature</div>
+    <div class="vvalue"><span id="tempv">36.7</span><span class="vunit">°C</span></div>
+    <div class="vnormal">Normal: 36.0–37.5°C</div>
+  </div>
+  <div class="vcard amber">
+    <div class="vlabel">EtCO₂</div>
+    <div class="vvalue"><span id="etco2v">34</span><span class="vunit">mmHg</span></div>
+    <div class="vnormal">Normal: 30–40 mmHg</div>
+  </div>
+  <div class="vcard purple">
+    <div class="vlabel">NIBP</div>
+    <div class="vvalue">120/80<span class="vunit"> mmHg</span></div>
+    <div class="map-line">MAP: 93 &nbsp;·&nbsp; Sys/Dia</div>
+    <div class="vnormal">Normal: &lt;120/&lt;80 mmHg</div>
+  </div>
+  <div class="vcard teal" id="arrCard">
+    <div class="vlabel">Arrhythmia</div>
+    <div class="vvalue" id="arrVal">Normal ♥</div>
+    <div class="vnormal" id="arrNote">No arrhythmia detected</div>
+  </div>
+</div>
+
+<!-- ECG -->
+<div class="ecg-wrap">
+  <div class="ecg-head">
+    <div class="emeta">ECG Waveform &nbsp;<span>— Lead I</span></div>
+    <div class="emeta">Gain: <span>10 mm/mV</span></div>
+    <div class="emeta">Speed: <span>25 mm/s</span></div>
+    <div class="emeta">HR: <span class="hr" id="hrVal">72</span> <span>bpm</span></div>
+  </div>
+  <canvas id="ecgCanvas"></canvas>
+</div>
+
+<!-- BOTTOM -->
+<div class="bottom">
+  <div class="bpanel">
+    <div class="bptitle">Trend Summary</div>
+    <div class="trow"><span class="tname">SpO₂ (%)</span><div class="tline"></div><span class="tval tg" id="ts1">98</span></div>
+    <div class="trow"><span class="tname">Temperature (°C)</span><div class="tline"></div><span class="tval tb" id="ts2">36.7</span></div>
+    <div class="trow"><span class="tname">EtCO₂ (mmHg)</span><div class="tline"></div><span class="tval ta" id="ts3">34</span></div>
+    <div class="trow"><span class="tname">NIBP (mmHg)</span><div class="tline"></div><span class="tval tp">120/80</span></div>
+    <div class="trow"><span class="tname">Arrhythmia</span><div class="tline"></div><span class="tval tg" id="ts5">Normal</span></div>
+  </div>
+
+  <div class="bpanel">
+    <div class="bptitle">Quick Actions</div>
+    <div class="qa" onclick="toggleRecord()">
+      <div class="qa-icon ic-rec">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3" fill="#60a5fa"/></svg>
+      </div>
+      <span class="qa-lbl" id="recLbl">Start / Stop Recording</span>
+    </div>
+    <div class="qa" onclick="genReport()">
+      <div class="qa-icon ic-rep">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+      </div>
+      <span class="qa-lbl" id="repLbl">Generate Report</span>
+    </div>
+    <div class="qa" onclick="exportData()">
+      <div class="qa-icon ic-exp">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      </div>
+      <span class="qa-lbl" id="expLbl">Export Data</span>
+    </div>
+  </div>
+</div>
+
+<!-- STATUS BAR -->
+<div class="statusbar">
+  <div class="sdot"></div>
+  <div class="stxt">Monitoring Active &nbsp;·&nbsp; <span>Bed-side unit ICU-07</span></div>
+  <div class="stxt">Network: <span style="color:#10b981;">Connected</span></div>
+  <div class="stxt">Battery: <span>AC Power</span></div>
+  <div class="rec-ind" id="recInd"><div class="rd"></div><span class="rt">RECORDING</span></div>
+  <div class="alarm" id="alarmBadge">⚠ ALARM ACTIVE</div>
+</div>
+
+<script>
+const canvas = document.getElementById('ecgCanvas');
+const ctx = canvas.getContext('2d');
+let W = 0, H = 0, offset = 0, raf;
+
+function resize() {
+  const r = canvas.getBoundingClientRect();
+  W = canvas.width  = Math.round(r.width);
+  H = canvas.height = Math.round(r.height);
+}
+
+function ecgY(x) {
+  const cycle = 300;
+  const t = ((x % cycle) + cycle) % cycle;
+  if (t < 30)  return Math.sin(t / 30 * Math.PI) * 14;
+  if (t < 46)  return -Math.sin((t-30)/16 * Math.PI) * 8;
+  if (t < 62)  return 0;
+  if (t < 70)  return -20;
+  if (t < 78)  return H * 0.52;
+  if (t < 86)  return -28;
+  if (t < 100) return 0;
+  if (t < 128) return Math.sin((t-100)/28 * Math.PI) * 20;
+  return 0;
+}
+
+function draw() {
+  resize();
+  if (!W || !H) { raf = requestAnimationFrame(draw); return; }
+
+  ctx.fillStyle = '#0d1b2a';
+  ctx.fillRect(0, 0, W, H);
+
+  ctx.strokeStyle = '#1e3a5f';
+  ctx.lineWidth = 0.5;
+  const gs = 30;
+  for (let x = 0; x < W; x += gs) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke(); }
+  for (let y = 0; y < H; y += gs) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
+
+  const mid = H / 2;
+  ctx.strokeStyle = '#10b981';
+  ctx.lineWidth = 2.5;
+  ctx.lineJoin = 'round';
+  ctx.lineCap  = 'round';
+  ctx.beginPath();
+  for (let x = 0; x <= W; x++) {
+    const y = mid - ecgY(x + offset);
+    x === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+
+  const now = new Date();
+  ctx.fillStyle = '#334155';
+  ctx.font = '12px JetBrains Mono, monospace';
+  for (let i = 0; i < 5; i++) {
+    const xp = Math.round(W * i / 4);
+    const ms = new Date(now.getTime() - (4-i)*300);
+    ctx.fillText(`${p(ms.getHours())}:${p(ms.getMinutes())}:${p(ms.getSeconds())}`, xp + 8, H - 10);
+  }
+
+  offset += 2;
+  raf = requestAnimationFrame(draw);
+}
+
+function p(n){ return String(n).padStart(2,'0'); }
+
+function tick() {
+  const now = new Date();
+  document.getElementById('clock').textContent = `${p(now.getHours())}:${p(now.getMinutes())}:${p(now.getSeconds())}`;
+  document.getElementById('datedisp').textContent = `${p(now.getDate())}/${p(now.getMonth()+1)}/${now.getFullYear()}`;
+}
+
+function jit(b, r, d) {
+  const v = b + (Math.random()-.5)*r;
+  return d ? v.toFixed(d) : Math.round(v);
+}
+
+function vitals() {
+  const s=jit(98,1,0), t=jit(36.7,.1,1), e=jit(34,2,0), hr=jit(72,5,0);
+  document.getElementById('spo2v').textContent  = s;
+  document.getElementById('tempv').textContent  = t;
+  document.getElementById('etco2v').textContent = e;
+  document.getElementById('hrVal').textContent  = hr;
+  document.getElementById('ts1').textContent = s;
+  document.getElementById('ts2').textContent = t;
+  document.getElementById('ts3').textContent = e;
+}
+
+let recording = false;
+function toggleRecord() {
+  recording = !recording;
+  document.getElementById('recInd').style.display = recording ? 'flex' : 'none';
+  document.getElementById('recLbl').textContent = recording ? 'Stop Recording' : 'Start / Stop Recording';
+}
+function genReport() {
+  const l = document.getElementById('repLbl');
+  l.textContent='Generating...'; l.style.color='#a78bfa';
+  setTimeout(()=>{ l.textContent='Report Ready ✓'; l.style.color='#10b981'; }, 1200);
+  setTimeout(()=>{ l.textContent='Generate Report'; l.style.color=''; }, 3200);
+}
+function exportData() {
+  const l = document.getElementById('expLbl');
+  l.textContent='Exporting...'; l.style.color='#f59e0b';
+  setTimeout(()=>{ l.textContent='Exported ✓'; l.style.color='#10b981'; }, 900);
+  setTimeout(()=>{ l.textContent='Export Data'; l.style.color=''; }, 2600);
+}
+
+window.addEventListener('resize', resize);
+draw();
+tick();
+vitals();
+setInterval(tick,   1000);
+setInterval(vitals, 3000);
+</script>
+</body>
+</html>
